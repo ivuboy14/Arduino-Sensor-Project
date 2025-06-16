@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sensoridata</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Reaaliaikainen sensoriseuranta</h1>
+
+    <h2>DHT11</h2>
+    <p>Lämpötila: <span id="dht-temp">—</span> °C</p>
+    <p>Kosteus: <span id="dht-humidity">—</span> %</p>
+    <canvas id="dhtChart" width="400" height="200"></canvas>
+
+    <h2>LM35</h2>
+    <p>Lämpötila: <span id="lm35-temp">—</span> °C</p>
+    <canvas id="lm35Chart" width="400" height="200"></canvas>
+
+    <script>
+        let dhtChart, lm35Chart;
+
+        function createChart(ctx, label, color) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderColor: color,
+                        tension: 0.3,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Aika' } },
+                        y: { title: { display: true, text: 'Arvo (°C)' } }
+                    }
+                }
+            });
+        }
+
+        async function fetchData() {
+            const resData = await fetch('/data');
+            const data = await resData.json();
+
+            document.getElementById("dht-temp").textContent = data.DHT11?.temperature ?? "—";
+            document.getElementById("dht-humidity").textContent = data.DHT11?.humidity ?? "—";
+            document.getElementById("lm35-temp").textContent = data.LM35?.temperature ?? "—";
+        }
+
+        async function fetchHistory() {
+            const res = await fetch('/history');
+            const history = await res.json();
+
+            const dht = history.DHT11 ?? [];
+            const lm35 = history.LM35 ?? [];
+
+            const formatTime = ts => {
+                const d = new Date(ts * 1000);
+                return d.toLocaleTimeString();
+            };
+
+            dhtChart.data.labels = dht.map(d => formatTime(d.timestamp));
+            dhtChart.data.datasets[0].data = dht.map(d => d.temperature);
+            dhtChart.update();
+
+            lm35Chart.data.labels = lm35.map(d => formatTime(d.timestamp));
+            lm35Chart.data.datasets[0].data = lm35.map(d => d.temperature);
+            lm35Chart.update();
+        }
+
+        window.onload = () => {
+            dhtChart = createChart(document.getElementById('dhtChart').getContext('2d'), 'DHT11 Lämpötila', 'blue');
+            lm35Chart = createChart(document.getElementById('lm35Chart').getContext('2d'), 'LM35 Lämpötila', 'green');
+
+            fetchData();
+            fetchHistory();
+            setInterval(() => {
+                fetchData();
+                fetchHistory();
+            }, 5000);
+        };
+    </script>
+</body>
+</html>
