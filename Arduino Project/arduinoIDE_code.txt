@@ -1,0 +1,45 @@
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
+#define DHTPIN 2        // DHT11 kytketty digitaaliseen pinniin 2
+#define DHTTYPE DHT11   // Sensori on tyyppiä DHT11
+
+#define LM35PIN A0      // LM35 kytketty analogiseen pinniin A0
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+}
+
+void loop() {
+  // LM35 lämpötila
+  int lm35Value = analogRead(LM35PIN);
+  float voltage = lm35Value * (5.0 / 1023.0);
+  float tempLM35 = voltage * 100.0;
+
+  // DHT11 lämpötila ja kosteus
+  float tempDHT = dht.readTemperature();
+  float humDHT = dht.readHumidity();
+
+  // Tarkistetaan että DHT11 toimii
+  if (isnan(tempDHT) || isnan(humDHT)) {
+    Serial.println("DHT11: Luku epäonnistui!");
+  } else {
+    // Tulosta DHT11-tiedot
+    Serial.print("DHT11: temperature: ");
+    Serial.print(tempDHT);
+    Serial.print("°C , humidity: ");
+    Serial.print(humDHT);
+    Serial.println("%");
+  }
+
+  // Tulosta LM35-tiedot
+  Serial.print("LM35: temperature: ");
+  Serial.print(tempLM35);
+  Serial.println("°C");
+
+  Serial.println(); // Tyhjä rivi selkeyden vuoksi
+  delay(5000);      // Odottaa 5 sekuntia ennen seuraavaa lukua
